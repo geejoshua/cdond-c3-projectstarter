@@ -4,13 +4,18 @@ commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
     parameters:
-      # Add parameter here   
+      Workflow_ID:
+        type: string
+        default: ${CIRCLE_WORKFLOW_ID:0:7} 
     steps:
       - run:
           name: Destroy environments
           when: on_fail
-          command: |
-            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
+          command: |            
+            aws s3 rm s3://udapeople-<<parameters.Workflow_ID>> --recursive            
+            aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.Workflow_ID >>
+            aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.Workflow_ID >>
+            # aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5}
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
@@ -156,19 +161,28 @@ jobs:
               --tags project=udapeople \
                --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
                --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-          no_output_timeout: 30m  
-              
+          no_output_timeout: 30m
+
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-              aws ec2 describe-instances \
-                --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --filters "Name=tag:Project,Values=udacity" \
-                --output text >> inventory
+            BACKEND_PUBLIC_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text)
+            echo $BACKEND_PUBLIC_IP >> .circleci/ansible/inventory.txt
+            cat .circleci/ansible/inventory.txt      
+      # - run:
+      #     name: Add back-end ip to ansible inventory
+      #     command: |
+      #         aws ec2 describe-instances \
+      #           --query 'Reservations[*].Instances[*].PublicIpAddress' \
+      #           --filters "Name=tag:Project,Values=udacity" \
+      #           --output text >> inventory
       - persist_to_workspace:
           root: ~/
           paths:
-            - autodeploysourcetree/.circleci/ansible/inventory.txt
+            - project/.circleci/ansible/inventory.txt
       - destroy-environment
 
   configure-infrastructure:
