@@ -168,8 +168,29 @@ jobs:
       - persist_to_workspace:
           root: ~/
           paths:
-            - project/.circleci/ansible/inventory.txt
-      - destroy-environment 
+            - autodeploysourcetree/.circleci/ansible/inventory.txt
+      - destroy-environment
+
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["51:65:df:83:2f:19:0b:9f:4a:3f:b6:ca:62:98:34:de"]
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
+      - destroy-environment   
+      # Here's where you will add some code to rollback on failure
              
 workflows:
   default:
@@ -189,3 +210,5 @@ workflows:
           filters:
             branches:
               only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
