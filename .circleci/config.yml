@@ -232,7 +232,7 @@ jobs:
   
   run-migrations:
     docker:
-      - image: cimg/node:13.8.0
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - install_awscli
@@ -283,3 +283,6 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
+
+
+          #aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-0d102f2" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text
