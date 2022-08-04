@@ -227,12 +227,13 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible
+            cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
       - destroy-environment   
   
   run-migrations:
     docker:
-      - image: circleci/node:15.0.1
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - restore_cache:
